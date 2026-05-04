@@ -25,13 +25,18 @@ venv.bak/
 .DS_Store
 
 # Project specific
-tasks.json
-history.json
+passwords.json
 *.log
 *.db
 *.sqlite
+*.key
+*.pem
 
 # OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
 .DS_Store
 Thumbs.db
 desktop.ini
