@@ -1,0 +1,33 @@
+
+---
+
+## Инструкция по работе с Git
+
+```bash
+# Инициализация репозитория
+git init
+
+# Добавление файлов
+git add main.py .gitignore README.md requirements.txt
+
+# Создание коммита
+git commit -m "Initial commit: Random Task Generator application"
+
+# Добавление удалённого репозитория
+git remote add origin https://github.com/your-username/random-task-generator.git
+
+# Отправка изменений
+git push -u origin main
+
+# Просмотр статуса
+git status
+
+# Просмотр истории коммитов
+git log --oneline --graph
+
+# Создание ветки разработки
+git checkout -b develop
+
+# Слияние изменений в основную ветку
+git checkout main
+git merge develop
