@@ -1,84 +1,30 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import random
+import string
 import json
 import os
-import random
 from datetime import datetime
 
-class RandomTaskGenerator:
+class RandomPasswordGenerator:
     def __init__(self, root):
         self.root = root
-        self.root.title("Random Task Generator - Генератор случайных задач")
-        self.root.geometry("950x750")
+        self.root.title("Random Password Generator - Генератор паролей")
+        self.root.geometry("900x750")
         self.root.resizable(True, True)
 
-        # Файлы для хранения данных
-        self.tasks_file = "tasks.json"
-        self.history_file = "history.json"
-        
-        # Загрузка данных
-        self.tasks = self.load_tasks()
+        # Файл для хранения истории
+        self.history_file = "passwords.json"
         self.history = self.load_history()
-        
-        # Текущая задача
-        self.current_task = None
-        
-        # Получение уникальных типов задач
-        self.update_task_types()
-        
+
         # Создание интерфейса
         self.create_widgets()
         
         # Отображение истории
         self.display_history()
         
-        # Генерация первой случайной задачи
-        self.generate_random_task()
-
-    def load_tasks(self):
-        """Загрузка задач из JSON файла"""
-        default_tasks = [
-            {"text": "Прочитать 20 страниц книги", "type": "Учёба"},
-            {"text": "Сделать зарядку 15 минут", "type": "Спорт"},
-            {"text": "Помыть посуду", "type": "Дом"},
-            {"text": "Выучить 10 новых слов на английском", "type": "Учёба"},
-            {"text": "Пробежать 2 км", "type": "Спорт"},
-            {"text": "Написать пост в блог", "type": "работа"},
-            {"text": "Помедитировать 10 минут", "type": "Саморазвитие"},
-            {"text": "Сделать отчёт по проекту", "type": "работа"},
-            {"text": "Позвонить родителям", "type": "Личное"},
-            {"text": "Убраться на рабочем столе", "type": "Дом"},
-            {"text": "Пройти урок на онлайн-курсе", "type": "Учёба"},
-            {"text": "Сделать план на неделю", "type": "работа"},
-            {"text": "Почитать новости", "type": "Саморазвитие"},
-            {"text": "Записаться к врачу", "type": "Личное"},
-            {"text": "Попробовать новый рецепт", "type": "Дом"},
-            {"text": "Сделать упражнения для спины", "type": "Спорт"},
-            {"text": "Написать код 30 минут", "type": "работа"},
-            {"text": "Посмотреть обучающее видео", "type": "Учёба"},
-            {"text": "Погулять на свежем воздухе", "type": "Спорт"},
-            {"text": "Поблагодарить коллегу", "type": "Личное"}
-        ]
-        
-        if os.path.exists(self.tasks_file):
-            try:
-                with open(self.tasks_file, 'r', encoding='utf-8') as f:
-                    tasks = json.load(f)
-                    if tasks:  # Если файл не пустой
-                        return tasks
-            except:
-                pass
-        
-        # Если файла нет или он пустой, создаём с задачами по умолчанию
-        self.save_tasks(default_tasks)
-        return default_tasks
-
-    def save_tasks(self, tasks=None):
-        """Сохранение задач в JSON файл"""
-        if tasks is None:
-            tasks = self.tasks
-        with open(self.tasks_file, 'w', encoding='utf-8') as f:
-            json.dump(tasks, f, indent=4, ensure_ascii=False)
+        # Генерация первого пароля
+        self.generate_password()
 
     def load_history(self):
         """Загрузка истории из JSON файла"""
@@ -95,79 +41,92 @@ class RandomTaskGenerator:
         with open(self.history_file, 'w', encoding='utf-8') as f:
             json.dump(self.history, f, indent=4, ensure_ascii=False)
 
-    def update_task_types(self):
-        """Обновление списка типов задач"""
-        types = sorted(set(task["type"] for task in self.tasks))
-        self.task_types = ["Все"] + types
-
     def create_widgets(self):
         # Основной фрейм
         main_frame = ttk.Frame(self.root, padding="15")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # ==================== Верхняя панель ====================
-        top_frame = ttk.Frame(main_frame)
-        top_frame.pack(fill=tk.X, pady=(0, 15))
+        # ==================== Верхняя панель - Генератор ====================
+        generator_frame = ttk.LabelFrame(main_frame, text="Генератор паролей", padding="15")
+        generator_frame.pack(fill=tk.X, pady=(0, 15))
 
-        self.generate_btn = ttk.Button(top_frame, text="🎲 Сгенерировать случайную задачу", 
-                                        command=self.generate_random_task, width=30)
-        self.generate_btn.pack(side=tk.LEFT, padx=(0, 10))
+        # Ползунок длины пароля
+        length_frame = ttk.Frame(generator_frame)
+        length_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Label(length_frame, text="Длина пароля:", font=("Arial", 11, "bold")).pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.length_value = tk.IntVar(value=12)
+        self.length_slider = ttk.Scale(length_frame, from_=4, to=32, orient=tk.HORIZONTAL, 
+                                        variable=self.length_value, command=self.update_length_label)
+        self.length_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        
+        self.length_label = ttk.Label(length_frame, text="12", font=("Arial", 11))
+        self.length_label.pack(side=tk.LEFT)
+        
+        # Минимальная и максимальная длина
+        ttk.Label(generator_frame, text="Диапазон: от 4 до 32 символов", 
+                  font=("Arial", 8), foreground="gray").pack(anchor=tk.W, pady=(0, 10))
 
-        self.add_task_btn = ttk.Button(top_frame, text="➕ Добавить новую задачу", 
-                                        command=self.open_add_task_window)
-        self.add_task_btn.pack(side=tk.LEFT)
+        # Чекбоксы для выбора символов
+        chars_frame = ttk.LabelFrame(generator_frame, text="Типы символов", padding="10")
+        chars_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        self.use_lowercase = tk.BooleanVar(value=True)
+        self.use_uppercase = tk.BooleanVar(value=True)
+        self.use_digits = tk.BooleanVar(value=True)
+        self.use_symbols = tk.BooleanVar(value=True)
+        
+        ttk.Checkbutton(chars_frame, text="Строчные буквы (a-z)", variable=self.use_lowercase).pack(anchor=tk.W, pady=2)
+        ttk.Checkbutton(chars_frame, text="Заглавные буквы (A-Z)", variable=self.use_uppercase).pack(anchor=tk.W, pady=2)
+        ttk.Checkbutton(chars_frame, text="Цифры (0-9)", variable=self.use_digits).pack(anchor=tk.W, pady=2)
+        ttk.Checkbutton(chars_frame, text="Спецсимволы (!@#$%^&*)", variable=self.use_symbols).pack(anchor=tk.W, pady=2)
+        
+        # Предупреждение
+        self.warning_label = ttk.Label(chars_frame, text="⚠ Выберите хотя бы один тип символов", 
+                                        font=("Arial", 8), foreground="red")
+        
+        # Кнопка генерации
+        self.generate_btn = ttk.Button(generator_frame, text="🔐 Сгенерировать пароль", 
+                                        command=self.generate_password, width=30)
+        self.generate_btn.pack(pady=(0, 15))
 
-        # ==================== Панель с текущей задачей ====================
-        task_frame = ttk.LabelFrame(main_frame, text="Текущая задача", padding="15")
-        task_frame.pack(fill=tk.X, pady=(0, 15))
+        # Отображение сгенерированного пароля
+        password_display_frame = ttk.Frame(generator_frame)
+        password_display_frame.pack(fill=tk.X)
+        
+        ttk.Label(password_display_frame, text="Сгенерированный пароль:", font=("Arial", 11, "bold")).pack(anchor=tk.W)
+        
+        self.password_text = tk.Text(password_display_frame, height=2, wrap=tk.WORD, font=("Courier", 12))
+        self.password_text.pack(fill=tk.X, pady=(5, 10))
+        
+        # Кнопка копирования
+        self.copy_btn = ttk.Button(generator_frame, text="📋 Копировать в буфер обмена", 
+                                    command=self.copy_to_clipboard, width=30)
+        self.copy_btn.pack()
 
-        self.task_text_label = tk.Text(task_frame, height=4, wrap=tk.WORD, 
-                                        font=("Arial", 12, "bold"), relief=tk.FLAT)
-        self.task_text_label.pack(fill=tk.X, pady=(0, 10))
-        self.task_text_label.config(state=tk.DISABLED)
+        # Индикатор сложности пароля
+        self.strength_label = ttk.Label(generator_frame, text="Сложность: ---", font=("Arial", 10))
+        self.strength_label.pack(pady=(10, 0))
 
-        self.task_info_label = ttk.Label(task_frame, text="", font=("Arial", 10))
-        self.task_info_label.pack()
-
-        # Кнопка выполнения задачи
-        self.complete_btn = ttk.Button(task_frame, text="✅ Выполнено!", 
-                                        command=self.mark_task_complete, width=20)
-        self.complete_btn.pack(pady=(10, 0))
-
-        # ==================== Панель фильтрации ====================
-        filter_frame = ttk.LabelFrame(main_frame, text="Фильтр истории", padding="10")
-        filter_frame.pack(fill=tk.X, pady=(0, 15))
-
-        filter_inner = ttk.Frame(filter_frame)
-        filter_inner.pack()
-
-        ttk.Label(filter_inner, text="Фильтр по типу задачи:").pack(side=tk.LEFT, padx=(0, 10))
-        self.type_filter = ttk.Combobox(filter_inner, values=self.task_types, width=20, state="readonly")
-        self.type_filter.set("Все")
-        self.type_filter.pack(side=tk.LEFT, padx=(0, 10))
-        self.type_filter.bind("<<ComboboxSelected>>", lambda e: self.filter_history())
-
-        self.reset_filter_btn = ttk.Button(filter_inner, text="Сбросить фильтр", command=self.reset_filter)
-        self.reset_filter_btn.pack(side=tk.LEFT)
-
-        # ==================== История ====================
-        history_frame = ttk.LabelFrame(main_frame, text="История задач", padding="10")
+        # ==================== Нижняя панель - История ====================
+        history_frame = ttk.LabelFrame(main_frame, text="История сгенерированных паролей", padding="10")
         history_frame.pack(fill=tk.BOTH, expand=True)
 
         # Таблица истории
-        columns = ("date", "task", "type", "status")
+        columns = ("date", "password", "length", "strength")
         self.history_tree = ttk.Treeview(history_frame, columns=columns, show="headings", height=12)
         
         self.history_tree.heading("date", text="Дата и время")
-        self.history_tree.heading("task", text="Задача")
-        self.history_tree.heading("type", text="Тип")
-        self.history_tree.heading("status", text="Статус")
+        self.history_tree.heading("password", text="Пароль")
+        self.history_tree.heading("length", text="Длина")
+        self.history_tree.heading("strength", text="Сложность")
         
         # Настройка ширины колонок
         self.history_tree.column("date", width=150)
-        self.history_tree.column("task", width=400)
-        self.history_tree.column("type", width=120)
-        self.history_tree.column("status", width=100)
+        self.history_tree.column("password", width=350)
+        self.history_tree.column("length", width=80)
+        self.history_tree.column("strength", width=100)
         
         # Скроллбар
         scrollbar = ttk.Scrollbar(history_frame, orient=tk.VERTICAL, command=self.history_tree.yview)
@@ -176,7 +135,7 @@ class RandomTaskGenerator:
         self.history_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Кнопки управления
+        # Кнопки управления историей
         hist_btn_frame = ttk.Frame(history_frame)
         hist_btn_frame.pack(fill=tk.X, pady=(10, 0))
         
@@ -186,97 +145,207 @@ class RandomTaskGenerator:
         self.export_history_btn = ttk.Button(hist_btn_frame, text="💾 Экспорт истории", command=self.export_history)
         self.export_history_btn.pack(side=tk.LEFT)
         
-        self.manage_tasks_btn = ttk.Button(hist_btn_frame, text="📝 Управление задачами", command=self.open_manage_tasks_window)
-        self.manage_tasks_btn.pack(side=tk.LEFT, padx=(5, 0))
+        # Привязка двойного клика для использования пароля
+        self.history_tree.bind("<Double-1>", self.use_password_from_history)
         
         # Статусная строка
         self.status_var = tk.StringVar()
-        self.status_var.set(f"Готов к работе. Всего задач в библиотеке: {len(self.tasks)}")
+        self.status_var.set("Готов к работе")
         status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-    def generate_random_task(self):
-        """Генерация случайной задачи"""
-        if not self.tasks:
-            messagebox.showwarning("Предупреждение", "Нет доступных задач! Добавьте хотя бы одну задачу.")
-            return
-        
-        # Выбор случайной задачи
-        self.current_task = random.choice(self.tasks)
-        
-        # Отображение задачи
-        self.task_text_label.config(state=tk.NORMAL)
-        self.task_text_label.delete(1.0, tk.END)
-        self.task_text_label.insert(1.0, f"📌 {self.current_task['text']}")
-        self.task_text_label.config(state=tk.DISABLED)
-        
-        self.task_info_label.config(text=f"Тип: {self.current_task['type']}")
-        
-        self.status_var.set(f"Сгенерирована задача: {self.current_task['text']}")
+    def update_length_label(self, event=None):
+        """Обновление метки длины пароля"""
+        self.length_label.config(text=f"{int(self.length_value.get())}")
 
-    def mark_task_complete(self):
-        """Отметка текущей задачи как выполненной и сохранение в историю"""
-        if not self.current_task:
-            messagebox.showwarning("Предупреждение", "Нет активной задачи! Сначала сгенерируйте задачу.")
+    def check_character_types(self):
+        """Проверка, выбран ли хотя бы один тип символов"""
+        if not (self.use_lowercase.get() or self.use_uppercase.get() or 
+                self.use_digits.get() or self.use_symbols.get()):
+            self.warning_label.pack(anchor=tk.W, pady=(5, 0))
+            return False
+        else:
+            self.warning_label.pack_forget()
+            return True
+
+    def generate_password(self):
+        """Генерация случайного пароля"""
+        # Проверка выбора символов
+        if not self.check_character_types():
+            messagebox.showwarning("Предупреждение", "Выберите хотя бы один тип символов!")
             return
+        
+        # Получение длины пароля
+        length = int(self.length_value.get())
+        
+        # Проверка минимальной/максимальной длины
+        if length < 4:
+            length = 4
+            self.length_value.set(4)
+            self.update_length_label()
+            messagebox.showinfo("Информация", "Минимальная длина пароля - 4 символа")
+        elif length > 32:
+            length = 32
+            self.length_value.set(32)
+            self.update_length_label()
+            messagebox.showinfo("Информация", "Максимальная длина пароля - 32 символа")
+        
+        # Формирование набора символов
+        characters = ""
+        if self.use_lowercase.get():
+            characters += string.ascii_lowercase
+        if self.use_uppercase.get():
+            characters += string.ascii_uppercase
+        if self.use_digits.get():
+            characters += string.digits
+        if self.use_symbols.get():
+            characters += "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        
+        # Генерация пароля с гарантией наличия выбранных типов символов
+        password_chars = []
+        
+        # Добавляем по одному символу из каждого выбранного типа
+        if self.use_lowercase.get():
+            password_chars.append(random.choice(string.ascii_lowercase))
+        if self.use_uppercase.get():
+            password_chars.append(random.choice(string.ascii_uppercase))
+        if self.use_digits.get():
+            password_chars.append(random.choice(string.digits))
+        if self.use_symbols.get():
+            password_chars.append(random.choice("!@#$%^&*()_+-=[]{}|;:,.<>?"))
+        
+        # Заполняем остальные символы случайным образом
+        for _ in range(length - len(password_chars)):
+            password_chars.append(random.choice(characters))
+        
+        # Перемешиваем символы для случайного порядка
+        random.shuffle(password_chars)
+        password = ''.join(password_chars)
+        
+        # Отображение пароля
+        self.password_text.delete(1.0, tk.END)
+        self.password_text.insert(1.0, password)
+        
+        # Оценка сложности
+        strength = self.evaluate_strength(password)
+        self.strength_label.config(text=f"Сложность: {strength}")
         
         # Сохранение в историю
         history_entry = {
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "task": self.current_task['text'],
-            "type": self.current_task['type'],
-            "status": "Выполнено ✅"
+            "password": password,
+            "length": length,
+            "strength": strength,
+            "settings": {
+                "lowercase": self.use_lowercase.get(),
+                "uppercase": self.use_uppercase.get(),
+                "digits": self.use_digits.get(),
+                "symbols": self.use_symbols.get()
+            }
         }
         
         self.history.append(history_entry)
         self.save_history()
-        self.filter_history()  # Обновляем отображение с учётом фильтра
+        self.display_history()
         
-        self.status_var.set(f"Задача '{self.current_task['text']}' отмечена как выполненная!")
-        messagebox.showinfo("Поздравляем!", f"Задача выполнена!\n\n{self.current_task['text']}")
-        
-        # Генерируем новую задачу
-        self.generate_random_task()
+        self.status_var.set(f"Сгенерирован пароль длиной {length} символов. Сложность: {strength}")
 
-    def filter_history(self):
-        """Фильтрация истории по типу задачи"""
-        selected_type = self.type_filter.get()
+    def evaluate_strength(self, password):
+        """Оценка сложности пароля"""
+        score = 0
+        length = len(password)
         
+        # Длина
+        if length >= 12:
+            score += 3
+        elif length >= 8:
+            score += 2
+        elif length >= 6:
+            score += 1
+        
+        # Наличие разных типов символов
+        if any(c.islower() for c in password):
+            score += 1
+        if any(c.isupper() for c in password):
+            score += 1
+        if any(c.isdigit() for c in password):
+            score += 1
+        if any(not c.isalnum() for c in password):
+            score += 2
+        
+        # Оценка
+        if score >= 7:
+            return "Очень высокий 🔒"
+        elif score >= 5:
+            return "Высокий 🔐"
+        elif score >= 3:
+            return "Средний ⚠️"
+        else:
+            return "Низкий ❌"
+
+    def copy_to_clipboard(self):
+        """Копирование пароля в буфер обмена"""
+        password = self.password_text.get(1.0, tk.END).strip()
+        if password:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(password)
+            self.status_var.set("Пароль скопирован в буфер обмена!")
+            messagebox.showinfo("Успех", "Пароль скопирован в буфер обмена!")
+        else:
+            messagebox.showwarning("Предупреждение", "Нет пароля для копирования!")
+
+    def display_history(self):
+        """Отображение истории в таблице"""
         # Очистка таблицы
         for item in self.history_tree.get_children():
             self.history_tree.delete(item)
         
-        # Фильтрация
-        filtered_history = self.history.copy()
-        
-        if selected_type != "Все":
-            filtered_history = [h for h in filtered_history if h["type"] == selected_type]
-        
-        # Отображение отфильтрованной истории (от новых к старым)
-        for entry in reversed(filtered_history):
+        # Добавление записей (от новых к старым)
+        for entry in reversed(self.history):
+            # Маскируем пароль для отображения (показываем только первые 4 символа и звездочки)
+            password = entry["password"]
+            if len(password) > 6:
+                masked_password = password[:4] + "*" * (len(password) - 4)
+            else:
+                masked_password = password[:2] + "*" * (len(password) - 2)
+            
             self.history_tree.insert("", tk.END, values=(
                 entry["date"],
-                entry["task"],
-                entry["type"],
-                entry["status"]
+                masked_password,
+                entry["length"],
+                entry["strength"]
             ))
         
         # Обновление статуса
-        count = len(filtered_history)
-        if selected_type != "Все":
-            self.status_var.set(f"Найдено {count} задач типа '{selected_type}'")
+        if self.history:
+            self.status_var.set(f"Всего паролей в истории: {len(self.history)}")
         else:
-            self.status_var.set(f"Всего задач в истории: {count}")
+            self.status_var.set("История пуста")
 
-    def reset_filter(self):
-        """Сброс фильтра"""
-        self.type_filter.set("Все")
-        self.filter_history()
-        self.status_var.set("Фильтр сброшен")
-
-    def display_history(self):
-        """Отображение всей истории"""
-        self.filter_history()
+    def use_password_from_history(self, event):
+        """Использование пароля из истории"""
+        selected = self.history_tree.selection()
+        if not selected:
+            return
+        
+        item = self.history_tree.item(selected[0])
+        values = item['values']
+        
+        # Поиск полного пароля в истории
+        for entry in self.history:
+            if entry["date"] == values[0]:
+                # Показываем диалог для подтверждения
+                if messagebox.askyesno("Подтверждение", 
+                                       f"Использовать пароль из истории?\n\n"
+                                       f"Дата: {entry['date']}\n"
+                                       f"Длина: {entry['length']}\n"
+                                       f"Сложность: {entry['strength']}\n\n"
+                                       f"Пароль будет скопирован в буфер обмена для вставки."):
+                    self.password_text.delete(1.0, tk.END)
+                    self.password_text.insert(1.0, entry["password"])
+                    self.strength_label.config(text=f"Сложность: {entry['strength']}")
+                    self.copy_to_clipboard()
+                break
 
     def clear_history(self):
         """Очистка истории"""
@@ -284,11 +353,14 @@ class RandomTaskGenerator:
             messagebox.showinfo("Информация", "История уже пуста")
             return
         
-        if messagebox.askyesno("Подтверждение", "Вы уверены, что хотите очистить всю историю?"):
+        if messagebox.askyesno("Подтверждение", 
+                               "Вы уверены, что хотите очистить всю историю?\n"
+                               "Это действие нельзя отменить!"):
             self.history = []
             self.save_history()
             self.display_history()
             self.status_var.set("История очищена")
+            messagebox.showinfo("Успех", "История успешно очищена!")
 
     def export_history(self):
         """Экспорт истории в JSON файл"""
@@ -301,7 +373,7 @@ class RandomTaskGenerator:
         filename = filedialog.asksaveasfilename(
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            initialfile=f"tasks_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            initialfile=f"passwords_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         )
         
         if filename:
@@ -313,124 +385,9 @@ class RandomTaskGenerator:
             except Exception as e:
                 messagebox.showerror("Ошибка", f"Не удалось экспортировать историю\n{str(e)}")
 
-    def open_add_task_window(self):
-        """Открытие окна для добавления новой задачи"""
-        add_window = tk.Toplevel(self.root)
-        add_window.title("Добавить новую задачу")
-        add_window.geometry("450x350")
-        add_window.resizable(False, False)
-        add_window.transient(self.root)
-        add_window.grab_set()
-        
-        ttk.Label(add_window, text="Текст задачи:", font=("Arial", 11, "bold")).pack(pady=(15, 5))
-        task_text = tk.Text(add_window, height=5, width=50, wrap=tk.WORD)
-        task_text.pack(pady=(0, 15))
-        
-        ttk.Label(add_window, text="Тип задачи:", font=("Arial", 11, "bold")).pack(pady=(5, 5))
-        
-        # Предустановленные типы
-        type_frame = ttk.Frame(add_window)
-        type_frame.pack(pady=(0, 10))
-        
-        task_type = tk.StringVar()
-        types = ["Учёба", "Спорт", "работа", "Дом", "Личное", "Саморазвитие", "Другое"]
-        
-        for i, t in enumerate(types):
-            ttk.Radiobutton(type_frame, text=t, variable=task_type, value=t).pack(side=tk.LEFT, padx=5)
-        
-        # Или свой тип
-        ttk.Label(add_window, text="Или введите свой тип:", font=("Arial", 10)).pack(pady=(5, 5))
-        custom_type = ttk.Entry(add_window, width=30)
-        custom_type.pack(pady=(0, 15))
-        
-        def save_task():
-            text = task_text.get("1.0", tk.END).strip()
-            
-            # Валидация
-            if not text:
-                messagebox.showerror("Ошибка", "Текст задачи не может быть пустым!")
-                return
-            
-            # Определение типа
-            if custom_type.get().strip():
-                task_type_val = custom_type.get().strip()
-            elif task_type.get():
-                task_type_val = task_type.get()
-            else:
-                messagebox.showerror("Ошибка", "Выберите или введите тип задачи!")
-                return
-            
-            # Добавление задачи
-            new_task = {
-                "text": text,
-                "type": task_type_val
-            }
-            
-            self.tasks.append(new_task)
-            self.save_tasks()
-            self.update_task_types()
-            
-            # Обновление выпадающего списка
-            self.type_filter['values'] = self.task_types
-            
-            self.status_var.set(f"Добавлена новая задача: {text}")
-            messagebox.showinfo("Успех", "Задача успешно добавлена!")
-            add_window.destroy()
-        
-        ttk.Button(add_window, text="Сохранить", command=save_task).pack(pady=(10, 5))
-        ttk.Button(add_window, text="Отмена", command=add_window.destroy).pack()
-
-    def open_manage_tasks_window(self):
-        """Открытие окна управления задачами"""
-        manage_window = tk.Toplevel(self.root)
-        manage_window.title("Управление задачами")
-        manage_window.geometry("600x500")
-        manage_window.transient(self.root)
-        
-        # Список задач
-        ttk.Label(manage_window, text="Список всех задач:", font=("Arial", 11, "bold")).pack(pady=(10, 5))
-        
-        frame = ttk.Frame(manage_window)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        # Создание списка
-        task_listbox = tk.Listbox(frame, height=15, font=("Arial", 10))
-        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=task_listbox.yview)
-        task_listbox.configure(yscrollcommand=scrollbar.set)
-        
-        task_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Заполнение списка
-        for i, task in enumerate(self.tasks, 1):
-            task_listbox.insert(tk.END, f"{i}. {task['text']} [{task['type']}]")
-        
-        # Кнопки управления
-        btn_frame = ttk.Frame(manage_window)
-        btn_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        def delete_task():
-            selection = task_listbox.curselection()
-            if not selection:
-                messagebox.showwarning("Предупреждение", "Выберите задачу для удаления!")
-                return
-            
-            if messagebox.askyesno("Подтверждение", "Удалить выбранную задачу?"):
-                index = selection[0]
-                deleted_task = self.tasks.pop(index)
-                self.save_tasks()
-                self.update_task_types()
-                self.type_filter['values'] = self.task_types
-                task_listbox.delete(index)
-                self.status_var.set(f"Задача '{deleted_task['text']}' удалена")
-                messagebox.showinfo("Успех", "Задача удалена!")
-        
-        ttk.Button(btn_frame, text="Удалить выбранную задачу", command=delete_task).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Закрыть", command=manage_window.destroy).pack(side=tk.LEFT, padx=5)
-
 def main():
     root = tk.Tk()
-    app = RandomTaskGenerator(root)
+    app = RandomPasswordGenerator(root)
     root.mainloop()
 
 if __name__ == "__main__":
