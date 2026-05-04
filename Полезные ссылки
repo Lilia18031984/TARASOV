@@ -11,10 +11,10 @@ git init
 git add main.py .gitignore README.md requirements.txt
 
 # Создание коммита
-git commit -m "Initial commit: Random Task Generator application"
+git commit -m "Initial commit: Random Password Generator application"
 
 # Добавление удалённого репозитория
-git remote add origin https://github.com/your-username/random-task-generator.git
+git remote add origin https://github.com/your-username/random-password-generator.git
 
 # Отправка изменений
 git push -u origin main
@@ -25,9 +25,9 @@ git status
 # Просмотр истории коммитов
 git log --oneline --graph
 
-# Создание ветки разработки
+# Создание и переключение на ветку разработки
 git checkout -b develop
 
-# Слияние изменений в основную ветку
-git checkout main
-git merge develop
+# Добавление тега версии
+git tag -a v1.0 -m "First stable release"
+git push origin v1.0
