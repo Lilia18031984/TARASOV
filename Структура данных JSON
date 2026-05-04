@@ -1,0 +1,14 @@
+[
+    {
+        "date": "2024-12-25 15:30:45",
+        "password": "gT7kL9mNp2Qr",
+        "length": 12,
+        "strength": "Высокий 🔐",
+        "settings": {
+            "lowercase": true,
+            "uppercase": true,
+            "digits": true,
+            "symbols": false
+        }
+    }
+]
